@@ -1,0 +1,26 @@
+{
+  "name": "raven",
+  "version": "1.0.0",
+  "description": "a minecraft AI testing project",
+  "main": "dist/index.js",
+  "scripts": {
+    "exec": "npx tsc; node ./dist/index.js",
+    "build": "npx tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WillCodesThings/Raven.git"
+  },
+  "author": "WillCodesThings",
+  "bugs": {
+    "url": "https://github.com/WillCodesThings/Raven/issues"
+  },
+  "homepage": "https://github.com/WillCodesThings/Raven#readme",
+  "dependencies": {
+    "body-parser": "^2.2.0",
+    "express": "^5.1.0",
+    "mineflayer": "^4.27.0",
+    "mineflayer-pathfinder": "^2.4.5"
+  }
+}
