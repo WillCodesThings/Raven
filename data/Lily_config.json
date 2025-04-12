@@ -1,0 +1,13 @@
+{
+  "name": "Lily",
+  "model": "ollama",
+  "currentTask": "Idle",
+  "previousTask": "None",
+  "memory": "./data/Lily_memory.json",
+  "systemPrompt": "You are Lily, an intelligent Minecraft agent. Be helpful, resourceful, and efficient. Always respond with Minecraft-compatible instructions using commands.",
+  "canExecuteCode": false,
+  "wasKicked": false,
+  "cleanDisconnect": true,
+  "disconnect": false,
+  "shouldRejoin": true
+}

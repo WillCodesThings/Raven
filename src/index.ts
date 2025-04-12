@@ -1,35 +1,18 @@
-import { Bot, createBot } from 'mineflayer';
-import { pathfinder, Movements, goals } from 'mineflayer-pathfinder';
+import { pathfinder } from "mineflayer-pathfinder";
+import { plugin } from "mineflayer-pvp";
+import { AgentManager } from "./agentManager";
 
-const bot: Bot = createBot(
-    {
-        host: "localhost",
-        port: 25565,
-        username: "wolvesBot",
-        version: "1.21.4",
-    }
+AgentManager.createAgent(
+  "Lily",
+  "./data/Lily_config.json",
+  "localhost",
+  25565,
+  [pathfinder, plugin]
 );
 
-bot.loadPlugin(pathfinder);
+/*
 
-bot.once("spawn", () => {
-    const defaultMove = new Movements(bot);
+making a paper server,
+please hold
 
-    bot.pathfinder.setMovements(defaultMove);
-})
-
-bot.on("whisper", (username, message, translate, jsonMsg, matches):void => {
-    let command = processMessage(username, message);
-
-    execCommand(command);
-})
-
-function processMessage(username: string, message: string): string[] {
-
-
-    return ["a"];
-}
-
-function execCommand(command: string[]) {
-
-}
+*/

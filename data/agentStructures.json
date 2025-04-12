@@ -1,0 +1,10 @@
+{
+  "structures": [
+    {
+      "name": "Home Base",
+      "type": "base",
+      "coordinates": { "x": 100, "y": 64, "z": -120 },
+      "notes": "This is Lily's main home base with storage and crafting areas."
+    }
+  ]
+}
