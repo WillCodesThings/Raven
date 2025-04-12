@@ -6,6 +6,7 @@ import { goals } from "mineflayer-pathfinder";
 export class MineCommand extends Command {
   private interval: NodeJS.Timeout | null = null;
   private agent: Agent | null = null;
+
   constructor() {
     super("mine");
   }
@@ -22,15 +23,16 @@ export class MineCommand extends Command {
 
     let mined = 0;
 
-    while (mined < amountInt) {
-      if (
-        agent.getBotInfo().inventory.filter((item) => item.name === blockName)
-          .length >= amountInt
-      ) {
-        agent.sendChat(`Got All Blocks, stopping mining.`);
-        break;
-      }
-      // Search for a block each time
+    const getItemCount = () => {
+      return bot.inventory.items().reduce((total, item) => {
+        if (item.name === blockName) {
+          total += item.count;
+        }
+        return total;
+      }, 0);
+    };
+
+    while (getItemCount() < amountInt) {
       const block = bot.findBlock({
         matching: (block) => block.name === blockName,
         maxDistance: 64,
@@ -45,7 +47,6 @@ export class MineCommand extends Command {
         if (bot.canDigBlock(block) && bot.canSeeBlock(block)) {
           agent.sendChat(`Moving to ${blockName} at ${block.position}`);
 
-          // Move close to the block first
           await bot.pathfinder.goto(
             new goals.GoalBlock(
               block.position.x,
@@ -56,39 +57,39 @@ export class MineCommand extends Command {
 
           agent.sendChat(`Mining ${blockName} (${mined + 1}/${amountInt})`);
           await bot.dig(block);
-
           mined++;
+
+          // Wait a bit to ensure the block disappears & item is picked up
+          await bot.waitForTicks(10);
         } else {
           agent.sendChat(
             `Can't reach or dig ${blockName} at ${block.position}`
           );
           break;
         }
-      } catch (err) {
+      } catch (err: any) {
         agent.sendChat(`Error while mining: ${err.message}`);
         break;
       }
-
-      // Short delay to ensure the block is removed from the world before continuing
-      await bot.waitForTicks(10);
     }
-    // After mining, check if we need to stop
+
     bot.stopDigging();
+
     agent.sendChat(
-      `Finished mining ${mined} ${blockName}${mined !== 1 ? "s" : ""}.`
+      `Finished mining. Collected ${getItemCount()} ${blockName}${
+        getItemCount() !== 1 ? "s" : ""
+      }.`
     );
   }
 
   async stop() {
-    if (!this.agent) {
-      return;
-    }
-    // Implement stop logic if needed
-    // For example, you might want to clear the interval or stop mining
+    if (!this.agent) return;
+
     if (this.interval) {
       clearInterval(this.interval);
       this.interval = null;
     }
+
     this.agent.sendChat("Stopped mining.");
   }
 }
