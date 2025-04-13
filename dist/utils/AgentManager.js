@@ -1,8 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AgentManager = void 0;
-const Agent_1 = require("./utils/Agent");
+const Agent_1 = require("./Agent");
 const agents = new Map();
+let updateCallback = () => { };
 exports.AgentManager = {
     getBotCount() {
         return agents.size;
@@ -20,8 +21,17 @@ exports.AgentManager = {
     createAgent(name, configPath, server, port, plugins) {
         if (agents.has(name))
             return null;
-        const agent = new Agent_1.Agent(configPath, name, server, port, plugins);
-        agents.set(name, agent);
+        let agent = null;
+        if (agents.size >= 1) {
+            setTimeout(() => {
+                agent = new Agent_1.Agent(configPath, name, server, port, plugins);
+                agents.set(name, agent);
+            }, 6 * 1000); // 10 seconds delay
+        }
+        else {
+            agent = new Agent_1.Agent(configPath, name, server, port, plugins);
+            agents.set(name, agent);
+        }
         return agent;
     },
     getAgent(name) {
@@ -42,5 +52,16 @@ exports.AgentManager = {
     },
     clearAgents() {
         agents.clear();
+    },
+    setUpdateCallback(callback) {
+        updateCallback = callback;
+    },
+    triggerUpdate() {
+        if (updateCallback)
+            updateCallback();
+    },
+    makeHud() {
+        // Call this to start the HUD system
+        console.log("HUD initialized");
     },
 };

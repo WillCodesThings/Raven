@@ -9,8 +9,12 @@ export class StopCommand extends Command {
   async execute(agent: Agent) {
     const lastCommandName = agent.getLastCommandName();
     const lastCommand = lastCommandName
-      ? agent.commands.get(lastCommandName)
+      ? agent.getCommands().get(lastCommandName)
       : null;
+
+    agent.sendChat(
+      `Stopping command: ${lastCommandName || "No last command found."}`
+    );
 
     if (lastCommand && typeof (lastCommand as any).stop === "function") {
       (lastCommand as any).stop();

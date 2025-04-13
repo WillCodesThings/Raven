@@ -4,11 +4,14 @@ import { Command } from "../utils/command";
 import { Agent } from "../utils/Agent";
 
 export class GoToCommand extends Command {
+  private agent: Agent | null = null;
+
   constructor() {
     super("goto");
   }
 
   async execute(agent: Agent, x: string, y: string, z: string) {
+    this.agent = agent;
     const bot: Bot = agent.getBot();
     const coords = [parseInt(x), parseInt(y), parseInt(z)];
 
@@ -19,5 +22,20 @@ export class GoToCommand extends Command {
     } else {
       agent.sendChat(`Invalid coordinates: ${x}, ${y}, ${z}`);
     }
+  }
+
+  async stop() {
+    if (!this.agent) {
+      return;
+    }
+
+    let bot: Bot = this.agent.getBot();
+    if (!bot) {
+      this.agent.sendChat("Bot is not initialized properly.");
+      return;
+    }
+
+    this.agent.getBot().pathfinder.stop();
+    this.agent.sendChat("Stopped moving.");
   }
 }

@@ -23,6 +23,11 @@ const prismarine_viewer_1 = __importDefault(require("prismarine-viewer"));
 const KillOnSight_1 = require("../commands/KillOnSight");
 const StopCommand_1 = require("../commands/StopCommand");
 const mineCommand_1 = require("../commands/mineCommand");
+const ConversationManager_1 = require("./ConversationManager");
+const MessageRouter_1 = require("./MessageRouter");
+const SimonSaysCommand_1 = require("../commands/SimonSaysCommand");
+const SetSkinCommand_1 = require("../commands/SetSkinCommand");
+const PerpetualFollowCommand_1 = require("../commands/PerpetualFollowCommand");
 const mineflayerViewer = prismarine_viewer_1.default.mineflayer;
 function addBrowserViewer(bot, count_id) {
     mineflayerViewer(bot, { port: 3000 + count_id, firstPerson: true });
@@ -30,92 +35,188 @@ function addBrowserViewer(bot, count_id) {
 exports.addBrowserViewer = addBrowserViewer;
 let botsMade = 0;
 class Agent {
-    constructor(configPath, name, server, port, plugins, botsMade = 0) {
+    constructor(configPath, name, server, port, plugins) {
         this.commands = new Map();
         this.lastCommandMessage = null;
         this.lastCommand = null;
         this.pendingCommand = false;
-        // server webviews differently
-        botsMade++;
-        this.bot = mineflayer_1.createBot({
-            host: server,
-            port: port,
-            username: name,
-            version: "1.21.4",
-        });
-        // load all passed in plugins
-        this.bot.loadPlugins(plugins);
         this.config = this.loadConfig(configPath);
-        this.name = this.config.name;
+        this.name = name;
         this.currentTask = this.config.currentTask;
         this.previousTask = this.config.previousTask;
-        // Set up the bot with all the available commands
-        this.registerCommand(new AttackCommand_1.AttackCommand());
-        this.registerCommand(new GoToCommand_1.GoToCommand());
-        this.registerCommand(new FollowCommand_1.FollowCommand());
-        this.registerCommand(new KillOnSight_1.KillOnSight());
-        this.registerCommand(new mineCommand_1.MineCommand());
-        this.registerCommand(new StopCommand_1.StopCommand());
-        // Set up Listeners
-        this.bot.on("spawn", () => {
-            const defaultMove = new mineflayer_pathfinder_1.Movements(this.bot);
-            this.bot.pathfinder.setMovements(defaultMove);
-            addBrowserViewer(this.bot, botsMade);
-            this.sendChat(`Hello! I am ${this.name}.`);
-            this.sendChat(`Hello! I am ${this.name}.`);
-            this.sendChat(`Current task: ${this.currentTask}`);
-            this.sendChat(`Previous task: ${this.previousTask}`);
-            this.botInfo = {
-                name: this.name,
-                health: this.bot.health,
-                position: this.bot.entity.position,
-                height: this.bot.entity.height,
-                yaw: this.bot.entity.yaw,
-                pitch: this.bot.entity.pitch,
-                dimension: this.bot.game.dimension,
-                gamemode: this.bot.game.gameMode,
-                food: this.bot.food,
-                heldItem: this.bot.entity.heldItem,
-                level: this.bot.experience.level,
-                experience: this.bot.experience.points,
-                inventory: this.bot.inventory.items(),
-                inventorySize: this.bot.inventory.slots.length,
-            };
+        this.bot = this.createAndInitBot(server, port, plugins);
+        this.messageRouter = new MessageRouter_1.MessageRouter(this);
+        this.registerDefaultCommands();
+        console.log(`Agent ${this.name} created and connected to ${server}:${port}`);
+    }
+    createAndInitBot(server, port, plugins) {
+        const bot = mineflayer_1.createBot({
+            host: server,
+            port,
+            username: this.name,
+            version: "1.21.4",
         });
-        console.log(`Agent ${this.name} initialized with config:`, this.config);
-        this.bot.on("chat", (username, message) => {
-            this.handleChat(username, message);
+        console.log(`Creating bot ${bot}...`);
+        bot.loadPlugins(plugins);
+        this.setupListeners(bot);
+        return bot;
+    }
+    setupListeners(bot) {
+        bot.on("login", () => {
+            //   setImmediate(() => addBrowserViewer(bot, ++botsMade));
         });
-        this.bot.on("physicsTick", () => {
-            this.updateBotInfo();
+        bot.on("spawn", () => {
+            bot.pathfinder.setMovements(new mineflayer_pathfinder_1.Movements(bot));
+            this.initBotInfo();
+            this.sendChat(`Hello! I am ${this.name}. Current task: ${this.currentTask}`);
         });
-        this.bot.on("kicked", (reason) => {
-            this.config.wasKicked = true;
-            this.config.cleanDisconnect = false;
-            this.config.disconnect = true;
-            this.config.shouldRejoin = true;
+        bot.on("death", () => this.sendChat("I have died!"));
+        bot.on("chat", (username, message) => this.messageRouter.routeMessage(username, message));
+        bot.on("physicsTick", () => this.updateBotInfo());
+        bot.on("kicked", () => {
+            this.config = Object.assign(Object.assign({}, this.config), { wasKicked: true, cleanDisconnect: false, disconnect: true, shouldRejoin: true });
         });
-        this.bot.on("end", () => {
-            if (this.config.shouldRejoin) {
-                this.bot = mineflayer_1.createBot({
-                    host: server,
-                    port: port,
-                    username: name,
-                    version: "1.21.4",
-                });
-                this.bot.loadPlugins(plugins);
-            }
-        });
+    }
+    registerDefaultCommands() {
+        [
+            new AttackCommand_1.AttackCommand(),
+            new GoToCommand_1.GoToCommand(),
+            new FollowCommand_1.FollowCommand(),
+            new KillOnSight_1.KillOnSight(),
+            new mineCommand_1.MineCommand(),
+            new StopCommand_1.StopCommand(),
+            new SimonSaysCommand_1.SimonSaysCommand(),
+            new SetSkinCommand_1.SetSkinCommand(),
+            new PerpetualFollowCommand_1.PerpetualFollowCommand(),
+        ].forEach((cmd) => this.registerCommand(cmd));
+    }
+    getCommands() {
+        return this.commands;
+    }
+    getName() {
+        return this.name;
+    }
+    getCurrentTask() {
+        return this.currentTask;
+    }
+    getPreviousTask() {
+        return this.previousTask;
     }
     registerCommand(command) {
         this.commands.set(command.name, command);
     }
-    getLastCommandName() {
-        return this.lastCommand;
+    processUserCommand(message) {
+        // if (username === this.name) return;
+        // if (username !== "oWolves") return; // TODO: Remove this line
+        const commandText = this.messageRouter
+            .extractUserCommandText(message)
+            .trim();
+        // this.sendChat(`Received command: ${commandText}`);
+        // Use MessageRouter to deconstruct the command
+        const { commandName, args } = this.messageRouter.deconstructCommand(commandText.slice(1));
+        // this.sendChat(`Command name: ${commandName}`);
+        // this.sendChat(`Command args: ${args.join(", ")}`);
+        if (this.pendingCommand && commandName !== "stop")
+            return this.sendChat(`Still processing previous command.`);
+        const command = this.commands.get(commandName);
+        if (!command)
+            return this.sendChat(`Unknown command: ${commandName}`);
+        // this.sendChat(`Executing command: ${commandName} ${args.join(" ")}`);
+        this.pendingCommand = true;
+        Promise.resolve(command.execute(this, ...args))
+            .catch((err) => this.sendChat(`Command error: ${err.message}`))
+            .finally(() => {
+            this.pendingCommand = false;
+            this.lastCommandMessage = message;
+            this.lastCommand = commandName;
+        });
+        this.lastCommand = commandName;
+        this.lastCommandMessage = message;
     }
-    loadConfig(configPath) {
-        const raw = fs_1.default.readFileSync(configPath, "utf-8");
-        return JSON.parse(raw);
+    processAgentMessage(sender, message) {
+        const parsedMessage = this.messageRouter.parseAgentMessage(message);
+        if (!parsedMessage)
+            return;
+        // Use MessageRouter to deconstruct the command
+        const { commandName: command, args } = this.messageRouter.deconstructCommand(parsedMessage.content);
+        switch (command) {
+            case "startconvo":
+                ConversationManager_1.ConversationManager.getInstance().startConversation(this.name, sender);
+                this.sendChat(`Started conversation with ${sender}`);
+                break;
+            case "endconvo":
+                ConversationManager_1.ConversationManager.getInstance().endConversation(this.name, sender);
+                this.sendChat(`Ended conversation with ${sender}`);
+                break;
+            case "goal":
+                this.processSharedGoal(args, sender);
+                break;
+            default:
+                this.sendChat(`Unknown agent command: ${command}`);
+        }
+    }
+    processSharedGoal(args, sender) {
+        var _a;
+        const goal = (_a = args[0]) === null || _a === void 0 ? void 0 : _a.toLowerCase();
+        const goalArgs = args.slice(1);
+        if (goal === "mine" && this.currentTask !== "mine") {
+            this.sendChat(`Joining ${sender} to mine ${goalArgs.join(" ")}`);
+            this.executeCommand("mine", ...goalArgs);
+        }
+        else {
+            this.sendChat(`Don't know how to help with ${goal}`);
+        }
+    }
+    executeCommand(commandName, ...args) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const command = this.commands.get(commandName);
+            if (!command)
+                return this.sendChat(`Unknown command: ${commandName}`);
+            this.pendingCommand = true;
+            yield command.execute(this, ...args);
+            this.pendingCommand = false;
+            this.lastCommandMessage = commandName;
+        });
+    }
+    initBotInfo() {
+        const { bot } = this;
+        this.botInfo = {
+            name: this.name,
+            health: bot.health,
+            position: bot.entity.position,
+            height: bot.entity.height,
+            yaw: bot.entity.yaw,
+            pitch: bot.entity.pitch,
+            dimension: bot.game.dimension,
+            gamemode: bot.game.gameMode,
+            food: bot.food,
+            heldItem: bot.entity.heldItem,
+            level: bot.experience.level,
+            experience: bot.experience.points,
+            inventory: bot.inventory.items(),
+            inventorySize: bot.inventory.slots.length,
+        };
+    }
+    updateBotInfo() {
+        if (!this.botInfo)
+            return;
+        Object.assign(this.botInfo, {
+            health: this.bot.health,
+            position: this.bot.entity.position,
+            height: this.bot.entity.height,
+            yaw: this.bot.entity.yaw,
+            pitch: this.bot.entity.pitch,
+            dimension: this.bot.game.dimension,
+            gamemode: this.bot.game.gameMode,
+            food: this.bot.food,
+            heldItem: this.bot.entity.heldItem,
+            level: this.bot.experience.level,
+            experience: this.bot.experience.points,
+            inventory: this.bot.inventory.items(),
+        });
+    }
+    sendChat(message) {
+        this.bot.chat(message);
     }
     getBot() {
         return this.bot;
@@ -126,62 +227,14 @@ class Agent {
     getBotInfo() {
         return this.botInfo;
     }
-    sendChat(message) {
-        this.bot.chat(message);
+    getLastCommandName() {
+        return this.lastCommand;
     }
-    handleChat(username, message) {
-        var _a;
-        if (username === this.name)
-            return;
-        const command = message.split(" ")[0].toLowerCase();
-        const args = message.split(" ").slice(1);
-        if (this.commands.has(command)) {
-            this.pendingCommand = true;
-            (_a = this.commands.get(command)) === null || _a === void 0 ? void 0 : _a.execute(this, ...args);
-            this.lastCommandMessage = message;
-            this.lastCommand = command;
-            this.pendingCommand = false;
-        }
-        else {
-            this.sendChat(`Unknown command: ${command}`);
-        }
+    getMessageRouter() {
+        return this.messageRouter;
     }
-    updateBotInfo() {
-        if (!this.botInfo)
-            return;
-        this.botInfo.health = this.bot.health;
-        this.botInfo.position = this.bot.entity.position;
-        this.botInfo.height = this.bot.entity.height;
-        this.botInfo.yaw = this.bot.entity.yaw;
-        this.botInfo.pitch = this.bot.entity.pitch;
-        this.botInfo.dimension = this.bot.game.dimension;
-        this.botInfo.gamemode = this.bot.game.gameMode;
-        this.botInfo.food = this.bot.food;
-        this.botInfo.heldItem = this.bot.entity.heldItem;
-        this.botInfo.level = this.bot.experience.level;
-        this.botInfo.experience = this.bot.experience.points;
-        this.botInfo.inventory = this.bot.inventory.items();
-        // this.botInfo.inventorySize = this.bot.inventory.slots.length; // dont need to update this
-    }
-    getNextAction() {
-        // gonna be the AI stuff
-        // Logic to determine the next action based on the current task
-        // This is a placeholder and should be replaced with actual logic
-        return "idle";
-    }
-    executeCommand(command, ...args) {
-        var _a;
-        return __awaiter(this, void 0, void 0, function* () {
-            if (this.commands.has(command)) {
-                this.pendingCommand = true;
-                yield ((_a = this.commands.get(command)) === null || _a === void 0 ? void 0 : _a.execute(this, ...args));
-                this.lastCommandMessage = command;
-                this.pendingCommand = false;
-            }
-            else {
-                this.sendChat(`Unknown command: ${command}`);
-            }
-        });
+    loadConfig(configPath) {
+        return JSON.parse(fs_1.default.readFileSync(configPath, "utf-8"));
     }
 }
 exports.Agent = Agent;

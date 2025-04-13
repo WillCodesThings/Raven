@@ -9,30 +9,36 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.GoToCommand = void 0;
+exports.PerpetualFollowCommand = void 0;
 const mineflayer_pathfinder_1 = require("mineflayer-pathfinder");
 const command_1 = require("../utils/command");
-class GoToCommand extends command_1.Command {
+class PerpetualFollowCommand extends command_1.Command {
     constructor() {
-        super("goto");
+        super("pfollow");
         this.agent = null;
     }
-    execute(agent, x, y, z) {
+    execute(agent, playerName) {
+        var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            this.agent = agent;
             const bot = agent.getBot();
-            const coords = [parseInt(x), parseInt(y), parseInt(z)];
-            if (coords.every((coord) => !isNaN(coord))) {
-                const goal = new mineflayer_pathfinder_1.goals.GoalBlock(coords[0], coords[1], coords[2]);
-                bot.pathfinder.setGoal(goal);
-                agent.sendChat(`Moving to (${coords[0]}, ${coords[1]}, ${coords[2]})`);
+            this.agent = agent;
+            const target = (_a = bot.players[playerName]) === null || _a === void 0 ? void 0 : _a.entity;
+            if (target) {
+                const followGoal = new mineflayer_pathfinder_1.goals.GoalFollow(target, 1); // 1 block tolerance
+                bot.pathfinder.setGoal(followGoal);
+                agent.sendChat(`Perpetually Following ${playerName}`);
+                bot.on("goal_reached", () => {
+                    const followGoal = new mineflayer_pathfinder_1.goals.GoalFollow(target, 1); // 1 block tolerance
+                    bot.pathfinder.setGoal(followGoal);
+                });
             }
             else {
-                agent.sendChat(`Invalid coordinates: ${x}, ${y}, ${z}`);
+                agent.sendChat(`Player ${playerName} not found.`);
             }
         });
     }
     stop() {
+        var _a;
         return __awaiter(this, void 0, void 0, function* () {
             if (!this.agent) {
                 return;
@@ -42,9 +48,10 @@ class GoToCommand extends command_1.Command {
                 this.agent.sendChat("Bot is not initialized properly.");
                 return;
             }
-            this.agent.getBot().pathfinder.stop();
-            this.agent.sendChat("Stopped moving.");
+            (_a = this.agent) === null || _a === void 0 ? void 0 : _a.getBot().pathfinder.stop();
+            bot.removeListener("goal_reached", () => { });
+            this.agent.sendChat("Stopped following.");
         });
     }
 }
-exports.GoToCommand = GoToCommand;
+exports.PerpetualFollowCommand = PerpetualFollowCommand;

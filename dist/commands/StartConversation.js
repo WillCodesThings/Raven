@@ -9,42 +9,33 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.GoToCommand = void 0;
-const mineflayer_pathfinder_1 = require("mineflayer-pathfinder");
+exports.StartConversation = void 0;
 const command_1 = require("../utils/command");
-class GoToCommand extends command_1.Command {
+const agentManager_1 = require("../utils/agentManager");
+const ConversationManager_1 = require("../utils/ConversationManager");
+class StartConversation extends command_1.Command {
     constructor() {
-        super("goto");
+        super("startConversation");
         this.agent = null;
     }
-    execute(agent, x, y, z) {
+    execute(agent, otherPlayerName) {
         return __awaiter(this, void 0, void 0, function* () {
-            this.agent = agent;
             const bot = agent.getBot();
-            const coords = [parseInt(x), parseInt(y), parseInt(z)];
-            if (coords.every((coord) => !isNaN(coord))) {
-                const goal = new mineflayer_pathfinder_1.goals.GoalBlock(coords[0], coords[1], coords[2]);
-                bot.pathfinder.setGoal(goal);
-                agent.sendChat(`Moving to (${coords[0]}, ${coords[1]}, ${coords[2]})`);
-            }
-            else {
-                agent.sendChat(`Invalid coordinates: ${x}, ${y}, ${z}`);
-            }
+            this.agent = agent;
+            agentManager_1.AgentManager.getAllAgents().forEach((otherAgent) => {
+                if (otherAgent.getBotInfo().name === otherPlayerName) {
+                    ConversationManager_1.ConversationManager.getInstance().startConversation(agent.getName(), otherAgent.getName());
+                }
+            });
+            this.agent.sendChat(` ${otherPlayerName}.`);
         });
     }
     stop() {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this.agent) {
+            if (!this.agent)
                 return;
-            }
-            let bot = this.agent.getBot();
-            if (!bot) {
-                this.agent.sendChat("Bot is not initialized properly.");
-                return;
-            }
-            this.agent.getBot().pathfinder.stop();
-            this.agent.sendChat("Stopped moving.");
+            this.agent.sendChat("Stopped mining.");
         });
     }
 }
-exports.GoToCommand = GoToCommand;
+exports.StartConversation = StartConversation;

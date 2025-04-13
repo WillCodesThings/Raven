@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Agent HUD (Live)</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        background: #111;
+        color: #eee;
+        padding: 2rem;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        border: 1px solid #444;
+        padding: 0.5rem;
+        text-align: left;
+      }
+      th {
+        background-color: #222;
+      }
+      tr:nth-child(even) {
+        background-color: #1a1a1a;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Agent HUD (WebSocket Live)</h1>
+    <table id="agentsTable">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Health</th>
+          <th>Food</th>
+          <th>Position</th>
+          <th>Held Item</th>
+          <th>Task</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <script>
+      const tableBody = document.querySelector("#agentsTable tbody");
+
+      // Function to handle WebSocket connection and updates
+      function setupWebSocket() {
+        const ws = new WebSocket(`ws://${location.host}`);
+
+        ws.onopen = () => {
+          console.log("WebSocket connected");
+        };
+
+        ws.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          if (data.type === "update") {
+            const agents = data.agents;
+            console.log("Received agents data:", agents); // Debugging line
+            tableBody.innerHTML = ""; // clear table
+
+            agents.forEach((agent) => {
+              const row = document.createElement("tr");
+              row.innerHTML = `
+                <td>${agent.name}</td>
+                <td>${agent.health}</td>
+                <td>${agent.food}</td>
+                <td>${agent.position?.x.toFixed(
+                  1
+                )}, ${agent.position?.y.toFixed(
+                1
+              )}, ${agent.position?.z.toFixed(1)}</td>
+                <td>${agent.heldItem?.name || "None"}</td>
+                <td>${agent.currentTask || "Idle"}</td>
+              `;
+              tableBody.appendChild(row);
+            });
+          }
+        };
+
+        ws.onerror = (err) => {
+          console.error("WebSocket error:", err);
+        };
+
+        ws.onclose = () => {
+          console.log("WebSocket closed, attempting to reconnect...");
+          setTimeout(setupWebSocket, 5000); // Retry connection every 5 seconds
+        };
+      }
+
+      // Initial WebSocket connection
+      setupWebSocket();
+    </script>
+  </body>
+</html>

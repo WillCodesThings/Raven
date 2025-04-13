@@ -9,27 +9,16 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.StopCommand = void 0;
+exports.SetSkinCommand = void 0;
 const command_1 = require("../utils/command");
-class StopCommand extends command_1.Command {
+class SetSkinCommand extends command_1.Command {
     constructor() {
-        super("stop");
+        super("skin");
     }
-    execute(agent) {
+    execute(agent, url) {
         return __awaiter(this, void 0, void 0, function* () {
-            const lastCommandName = agent.getLastCommandName();
-            const lastCommand = lastCommandName
-                ? agent.getCommands().get(lastCommandName)
-                : null;
-            agent.sendChat(`Stopping command: ${lastCommandName || "No last command found."}`);
-            if (lastCommand && typeof lastCommand.stop === "function") {
-                lastCommand.stop();
-                agent.sendChat(`Stopped ${lastCommandName}.`);
-            }
-            else {
-                agent.sendChat("No running command to stop or command doesn't support stopping.");
-            }
+            agent.sendChat(`/skin url "${url}"`);
         });
     }
 }
-exports.StopCommand = StopCommand;
+exports.SetSkinCommand = SetSkinCommand;

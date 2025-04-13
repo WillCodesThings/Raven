@@ -1,5 +1,7 @@
-import { Agent } from "./utils/Agent";
+import { Agent } from "./Agent";
+
 const agents = new Map<string, Agent>();
+let updateCallback: () => void = () => {};
 
 export const AgentManager = {
   getBotCount() {
@@ -23,15 +25,18 @@ export const AgentManager = {
     plugins: any[]
   ) {
     if (agents.has(name)) return null;
-    const agent = new Agent(
-      configPath,
-      name,
-      server,
-      port,
-      plugins,
-      this.getBotCount() + 1
-    );
-    agents.set(name, agent);
+
+    let agent: Agent | null = null;
+    if (agents.size >= 1) {
+      setTimeout(() => {
+        agent = new Agent(configPath, name, server, port, plugins);
+        agents.set(name, agent);
+      }, 6 * 1000); // 10 seconds delay
+    } else {
+      agent = new Agent(configPath, name, server, port, plugins);
+      agents.set(name, agent);
+    }
+
     return agent;
   },
   getAgent(name: string) {
@@ -52,5 +57,17 @@ export const AgentManager = {
   },
   clearAgents() {
     agents.clear();
+  },
+  setUpdateCallback(callback: () => void) {
+    updateCallback = callback;
+  },
+
+  triggerUpdate() {
+    if (updateCallback) updateCallback();
+  },
+
+  makeHud() {
+    // Call this to start the HUD system
+    console.log("HUD initialized");
   },
 };

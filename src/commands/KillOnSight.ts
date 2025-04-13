@@ -9,13 +9,17 @@ export class KillOnSight extends Command {
     super("kos");
   }
 
-  async execute(agent: Agent, targetName: string) {
+  async execute(agent: Agent, targetName: string[]) {
     const bot: Bot = agent.getBot();
 
     if (!bot.pvp) {
       agent.sendChat("PVP plugin is not loaded.");
       return;
     }
+
+    targetName = Array.isArray(targetName)
+      ? targetName
+      : JSON.parse(targetName);
 
     // Clear previous interval if it exists
     if (this.interval) {
@@ -24,7 +28,21 @@ export class KillOnSight extends Command {
 
     this.interval = setInterval(() => {
       const target = bot.nearestEntity((entity) => {
-        return entity.username === targetName || entity.name === targetName;
+        if (!entity) return false;
+        if (!entity.name) return false;
+        if (entity.name === "player" && entity.username) {
+          return (
+            entity &&
+            targetName.includes(entity.username) &&
+            entity.position.distanceTo(bot.entity.position) < 10
+          );
+        } else {
+          return (
+            entity &&
+            targetName.includes(entity.name) &&
+            entity.position.distanceTo(bot.entity.position) < 10
+          );
+        }
       });
 
       if (target) {
