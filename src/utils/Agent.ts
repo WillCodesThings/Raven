@@ -18,6 +18,8 @@ import { MessageRouter } from "./MessageRouter";
 import { SimonSaysCommand } from "../commands/SimonSaysCommand";
 import { SetSkinCommand } from "../commands/SetSkinCommand";
 import { PerpetualFollowCommand } from "../commands/PerpetualFollowCommand";
+import { EquipCommand } from "../commands/EquipCommand";
+import { ArmorEquipCommand } from "../commands/ArmorEquip";
 
 const mineflayerViewer = prismarineViewer.mineflayer;
 export function addBrowserViewer(bot: Bot, count_id: number) {
@@ -26,6 +28,11 @@ export function addBrowserViewer(bot: Bot, count_id: number) {
 
 let botsMade = 0;
 
+export interface LoginInfo {
+  username: string;
+  password: string;
+  email: string;
+}
 export interface AgentConfig {
   name: string;
   model: string;
@@ -60,6 +67,9 @@ interface BotInfo {
 export class Agent {
   private name: string;
   private bot: Bot;
+
+  private aiModel: OllamaModel | null = null;
+
   private config: AgentConfig;
   private commands = new Map<string, Command>();
   private currentTask: string;
@@ -74,17 +84,17 @@ export class Agent {
 
   constructor(
     configPath: string,
-    name: string,
+    loginInfo: LoginInfo,
     server: string,
     port: number,
     plugins: Plugin[]
   ) {
     this.config = this.loadConfig(configPath);
-    this.name = name;
+    this.name = loginInfo.username;
     this.currentTask = this.config.currentTask;
     this.previousTask = this.config.previousTask;
 
-    this.bot = this.createAndInitBot(server, port, plugins);
+    this.bot = this.createAndInitBot(loginInfo, server, port, plugins);
     this.messageRouter = new MessageRouter(this);
     this.registerDefaultCommands();
 
@@ -93,15 +103,34 @@ export class Agent {
     );
   }
 
-  private createAndInitBot(server: string, port: number, plugins: Plugin[]) {
-    const bot = createBot({
-      host: server,
-      port,
-      username: this.name,
-      version: "1.21.4",
-    });
+  private createAndInitBot(
+    loginInfo: LoginInfo,
+    server: string,
+    port: number,
+    plugins: Plugin[]
+  ) {
+    let bot: Bot;
+    if (loginInfo.email && loginInfo.password) {
+      // Microsoft authentication
+      bot = createBot({
+        host: server,
+        port,
+        username: loginInfo.username,
+        password: loginInfo.password,
+        auth: "microsoft",
+        version: "1.21.4",
+      });
+    } else {
+      // Offline mode
+      bot = createBot({
+        host: server,
+        port,
+        username: loginInfo.username,
+        version: "1.21.4",
+      });
+    }
 
-    console.log(`Creating bot ${bot}...`);
+    console.log(`Creating bot ${this.name}...`);
 
     bot.loadPlugins(plugins);
     this.setupListeners(bot);
@@ -148,7 +177,13 @@ export class Agent {
       new SimonSaysCommand(),
       new SetSkinCommand(),
       new PerpetualFollowCommand(),
+      new EquipCommand(),
+      new ArmorEquipCommand(),
     ].forEach((cmd) => this.registerCommand(cmd));
+  }
+
+  public getMemory() {
+    return JSON.parse(fs.readFileSync(this.config.memory, "utf-8"));
   }
 
   public getCommands() {

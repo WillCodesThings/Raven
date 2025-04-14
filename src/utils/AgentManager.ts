@@ -1,4 +1,4 @@
-import { Agent } from "./Agent";
+import { Agent, LoginInfo } from "./Agent";
 
 const agents = new Map<string, Agent>();
 let updateCallback: () => void = () => {};
@@ -8,33 +8,46 @@ export const AgentManager = {
     return agents.size;
   },
   /**
-   *
+   * Creates a new agent with the given parameters
    *
    * @param {string} name - The name of the agent.
    * @param {string} configPath - The path to the config file.
    * @param {string} server - The server to connect to.
    * @param {number} port - The port to connect to.
    * @param {any[]} plugins - The plugins to use.
-   * @return {*}
+   * @param {Object} [options] - Optional parameters like email and password
+   * @return {Agent|null} The created agent or null if it already exists
    */
   createAgent(
     name: string,
     configPath: string,
     server: string,
     port: number,
-    plugins: any[]
+    plugins: any[],
+    options?: { email?: string; password?: string }
   ) {
     if (agents.has(name)) return null;
 
+    // Create login info object
+    const loginInfo: LoginInfo = {
+      username: name,
+      email: options?.email || "",
+      password: options?.password || "",
+    };
+
     let agent: Agent | null = null;
     if (agents.size >= 1) {
+      // Create with delay if not the first agent
       setTimeout(() => {
-        agent = new Agent(configPath, name, server, port, plugins);
+        agent = new Agent(configPath, loginInfo, server, port, plugins);
         agents.set(name, agent);
-      }, 6 * 1000); // 10 seconds delay
+        this.triggerUpdate();
+      }, 6 * 1000); // 6 seconds delay
     } else {
-      agent = new Agent(configPath, name, server, port, plugins);
+      // Create immediately if first agent
+      agent = new Agent(configPath, loginInfo, server, port, plugins);
       agents.set(name, agent);
+      this.triggerUpdate();
     }
 
     return agent;
@@ -47,6 +60,7 @@ export const AgentManager = {
     if (agent) {
       agent.getBot().quit();
       agents.delete(name);
+      this.triggerUpdate();
     }
   },
   listAgents() {
@@ -57,6 +71,7 @@ export const AgentManager = {
   },
   clearAgents() {
     agents.clear();
+    this.triggerUpdate();
   },
   setUpdateCallback(callback: () => void) {
     updateCallback = callback;

@@ -8,7 +8,13 @@ const mineflayer_pvp_1 = require("mineflayer-pvp");
 const agentManager_1 = require("./utils/agentManager");
 agentManager_1.AgentManager.createAgent("Lily", "./data/Lily_config.json", "localhost", 25565, [mineflayer_pathfinder_1.pathfinder, mineflayer_pvp_1.plugin]);
 // Agent Manager will auto stagger
-agentManager_1.AgentManager.createAgent("Andy", "./data/Lily_config.json", "localhost", 25565, [mineflayer_pathfinder_1.pathfinder, mineflayer_pvp_1.plugin]);
+// AgentManager.createAgent(
+//   "Andy",
+//   "./data/Lily_config.json",
+//   "localhost",
+//   25565,
+//   [pathfinder, plugin]
+// );
 const express_1 = __importDefault(require("express"));
 const path_1 = __importDefault(require("path"));
 const http_1 = __importDefault(require("http"));

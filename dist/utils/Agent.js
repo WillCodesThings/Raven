@@ -28,6 +28,8 @@ const MessageRouter_1 = require("./MessageRouter");
 const SimonSaysCommand_1 = require("../commands/SimonSaysCommand");
 const SetSkinCommand_1 = require("../commands/SetSkinCommand");
 const PerpetualFollowCommand_1 = require("../commands/PerpetualFollowCommand");
+const EquipCommand_1 = require("../commands/EquipCommand");
+const ArmorEquip_1 = require("../commands/ArmorEquip");
 const mineflayerViewer = prismarine_viewer_1.default.mineflayer;
 function addBrowserViewer(bot, count_id) {
     mineflayerViewer(bot, { port: 3000 + count_id, firstPerson: true });
@@ -35,28 +37,44 @@ function addBrowserViewer(bot, count_id) {
 exports.addBrowserViewer = addBrowserViewer;
 let botsMade = 0;
 class Agent {
-    constructor(configPath, name, server, port, plugins) {
+    constructor(configPath, loginInfo, server, port, plugins) {
+        this.aiModel = null;
         this.commands = new Map();
         this.lastCommandMessage = null;
         this.lastCommand = null;
         this.pendingCommand = false;
         this.config = this.loadConfig(configPath);
-        this.name = name;
+        this.name = loginInfo.username;
         this.currentTask = this.config.currentTask;
         this.previousTask = this.config.previousTask;
-        this.bot = this.createAndInitBot(server, port, plugins);
+        this.bot = this.createAndInitBot(loginInfo, server, port, plugins);
         this.messageRouter = new MessageRouter_1.MessageRouter(this);
         this.registerDefaultCommands();
         console.log(`Agent ${this.name} created and connected to ${server}:${port}`);
     }
-    createAndInitBot(server, port, plugins) {
-        const bot = mineflayer_1.createBot({
-            host: server,
-            port,
-            username: this.name,
-            version: "1.21.4",
-        });
-        console.log(`Creating bot ${bot}...`);
+    createAndInitBot(loginInfo, server, port, plugins) {
+        let bot;
+        if (loginInfo.email && loginInfo.password) {
+            // Microsoft authentication
+            bot = mineflayer_1.createBot({
+                host: server,
+                port,
+                username: loginInfo.username,
+                password: loginInfo.password,
+                auth: "microsoft",
+                version: "1.21.4",
+            });
+        }
+        else {
+            // Offline mode
+            bot = mineflayer_1.createBot({
+                host: server,
+                port,
+                username: loginInfo.username,
+                version: "1.21.4",
+            });
+        }
+        console.log(`Creating bot ${this.name}...`);
         bot.loadPlugins(plugins);
         this.setupListeners(bot);
         return bot;
@@ -88,7 +106,12 @@ class Agent {
             new SimonSaysCommand_1.SimonSaysCommand(),
             new SetSkinCommand_1.SetSkinCommand(),
             new PerpetualFollowCommand_1.PerpetualFollowCommand(),
+            new EquipCommand_1.EquipCommand(),
+            new ArmorEquip_1.ArmorEquipCommand(),
         ].forEach((cmd) => this.registerCommand(cmd));
+    }
+    getMemory() {
+        return JSON.parse(fs_1.default.readFileSync(this.config.memory, "utf-8"));
     }
     getCommands() {
         return this.commands;

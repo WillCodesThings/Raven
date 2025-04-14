@@ -11,13 +11,13 @@ AgentManager.createAgent(
 );
 
 // Agent Manager will auto stagger
-AgentManager.createAgent(
-  "Andy",
-  "./data/Lily_config.json",
-  "localhost",
-  25565,
-  [pathfinder, plugin]
-);
+// AgentManager.createAgent(
+//   "Andy",
+//   "./data/Lily_config.json",
+//   "localhost",
+//   25565,
+//   [pathfinder, plugin]
+// );
 
 import express from "express";
 import path from "path";
