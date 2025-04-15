@@ -38,7 +38,6 @@ exports.addBrowserViewer = addBrowserViewer;
 let botsMade = 0;
 class Agent {
     constructor(configPath, loginInfo, server, port, plugins) {
-        this.aiModel = null;
         this.commands = new Map();
         this.lastCommandMessage = null;
         this.lastCommand = null;
@@ -208,8 +207,7 @@ class Agent {
             health: bot.health,
             position: bot.entity.position,
             height: bot.entity.height,
-            yaw: bot.entity.yaw,
-            pitch: bot.entity.pitch,
+            rotation: { yaw: bot.entity.yaw, pitch: bot.entity.pitch },
             dimension: bot.game.dimension,
             gamemode: bot.game.gameMode,
             food: bot.food,
@@ -218,6 +216,7 @@ class Agent {
             experience: bot.experience.points,
             inventory: bot.inventory.items(),
             inventorySize: bot.inventory.slots.length,
+            uuid: bot.entity.id || -1,
         };
     }
     updateBotInfo() {
@@ -227,8 +226,10 @@ class Agent {
             health: this.bot.health,
             position: this.bot.entity.position,
             height: this.bot.entity.height,
-            yaw: this.bot.entity.yaw,
-            pitch: this.bot.entity.pitch,
+            rotation: {
+                yaw: this.bot.entity.yaw,
+                pitch: this.bot.entity.pitch,
+            },
             dimension: this.bot.game.dimension,
             gamemode: this.bot.game.gameMode,
             food: this.bot.food,
@@ -236,6 +237,7 @@ class Agent {
             level: this.bot.experience.level,
             experience: this.bot.experience.points,
             inventory: this.bot.inventory.items(),
+            uuid: this.bot.entity.id,
         });
     }
     sendChat(message) {

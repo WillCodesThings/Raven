@@ -51,9 +51,11 @@ interface BotInfo {
   name: string;
   health: number;
   position: Vec3;
+  rotation: {
+    yaw: number;
+    pitch: number;
+  };
   height: number;
-  yaw: number;
-  pitch: number;
   dimension: string;
   gamemode: string;
   food: number;
@@ -62,13 +64,12 @@ interface BotInfo {
   experience: number;
   inventory: Item[];
   inventorySize: number;
+  uuid: number;
 }
 
 export class Agent {
   private name: string;
   private bot: Bot;
-
-  private aiModel: OllamaModel | null = null;
 
   private config: AgentConfig;
   private commands = new Map<string, Command>();
@@ -296,8 +297,7 @@ export class Agent {
       health: bot.health,
       position: bot.entity.position,
       height: bot.entity.height,
-      yaw: bot.entity.yaw,
-      pitch: bot.entity.pitch,
+      rotation: { yaw: bot.entity.yaw, pitch: bot.entity.pitch },
       dimension: bot.game.dimension,
       gamemode: bot.game.gameMode,
       food: bot.food,
@@ -306,6 +306,7 @@ export class Agent {
       experience: bot.experience.points,
       inventory: bot.inventory.items(),
       inventorySize: bot.inventory.slots.length,
+      uuid: bot.entity.id || -1,
     };
   }
 
@@ -315,8 +316,10 @@ export class Agent {
       health: this.bot.health,
       position: this.bot.entity.position,
       height: this.bot.entity.height,
-      yaw: this.bot.entity.yaw,
-      pitch: this.bot.entity.pitch,
+      rotation: {
+        yaw: this.bot.entity.yaw,
+        pitch: this.bot.entity.pitch,
+      },
       dimension: this.bot.game.dimension,
       gamemode: this.bot.game.gameMode,
       food: this.bot.food,
@@ -324,6 +327,7 @@ export class Agent {
       level: this.bot.experience.level,
       experience: this.bot.experience.points,
       inventory: this.bot.inventory.items(),
+      uuid: this.bot.entity.id,
     });
   }
 
