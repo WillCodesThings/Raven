@@ -20,6 +20,7 @@ const AttackCommand_1 = require("../commands/AttackCommand");
 const GoToCommand_1 = require("../commands/GoToCommand");
 const FollowCommand_1 = require("../commands/FollowCommand");
 const prismarine_viewer_1 = __importDefault(require("prismarine-viewer"));
+const vec3_1 = require("vec3");
 const KillOnSight_1 = require("../commands/KillOnSight");
 const StopCommand_1 = require("../commands/StopCommand");
 const mineCommand_1 = require("../commands/mineCommand");
@@ -30,6 +31,7 @@ const SetSkinCommand_1 = require("../commands/SetSkinCommand");
 const PerpetualFollowCommand_1 = require("../commands/PerpetualFollowCommand");
 const EquipCommand_1 = require("../commands/EquipCommand");
 const ArmorEquip_1 = require("../commands/ArmorEquip");
+const GetAllInfoCommand_1 = require("../commands/GetAllInfoCommand");
 const mineflayerViewer = prismarine_viewer_1.default.mineflayer;
 function addBrowserViewer(bot, count_id) {
     mineflayerViewer(bot, { port: 3000 + count_id, firstPerson: true });
@@ -46,6 +48,25 @@ class Agent {
         this.name = loginInfo.username;
         this.currentTask = this.config.currentTask;
         this.previousTask = this.config.previousTask;
+        this.botInfo = {
+            name: "Offline",
+            health: 0,
+            model: this.config.model,
+            // maxHealth: 0,
+            // maxFood: 0,
+            position: new vec3_1.Vec3(0, 0, 0),
+            height: 0.0,
+            rotation: { yaw: 0, pitch: 0 },
+            dimension: "overworld",
+            gamemode: "survival",
+            food: 0,
+            heldItem: null,
+            level: 0,
+            experience: 0,
+            inventory: [],
+            inventorySize: 0,
+            uuid: 0,
+        };
         this.bot = this.createAndInitBot(loginInfo, server, port, plugins);
         this.messageRouter = new MessageRouter_1.MessageRouter(this);
         this.registerDefaultCommands();
@@ -55,7 +76,7 @@ class Agent {
         let bot;
         if (loginInfo.email && loginInfo.password) {
             // Microsoft authentication
-            bot = mineflayer_1.createBot({
+            bot = (0, mineflayer_1.createBot)({
                 host: server,
                 port,
                 username: loginInfo.username,
@@ -66,7 +87,7 @@ class Agent {
         }
         else {
             // Offline mode
-            bot = mineflayer_1.createBot({
+            bot = (0, mineflayer_1.createBot)({
                 host: server,
                 port,
                 username: loginInfo.username,
@@ -107,6 +128,7 @@ class Agent {
             new PerpetualFollowCommand_1.PerpetualFollowCommand(),
             new EquipCommand_1.EquipCommand(),
             new ArmorEquip_1.ArmorEquipCommand(),
+            new GetAllInfoCommand_1.GetAllInfoCommand(),
         ].forEach((cmd) => this.registerCommand(cmd));
     }
     getMemory() {
@@ -204,6 +226,7 @@ class Agent {
         const { bot } = this;
         this.botInfo = {
             name: this.name,
+            model: this.config.model,
             health: bot.health,
             position: bot.entity.position,
             height: bot.entity.height,
@@ -224,6 +247,7 @@ class Agent {
             return;
         Object.assign(this.botInfo, {
             health: this.bot.health,
+            model: this.config.model,
             position: this.bot.entity.position,
             height: this.bot.entity.height,
             rotation: {

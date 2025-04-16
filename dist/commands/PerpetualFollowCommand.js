@@ -16,6 +16,7 @@ class PerpetualFollowCommand extends command_1.Command {
     constructor() {
         super("pfollow");
         this.agent = null;
+        this.interval = null;
     }
     execute(agent, playerName) {
         var _a;
@@ -27,10 +28,14 @@ class PerpetualFollowCommand extends command_1.Command {
                 const followGoal = new mineflayer_pathfinder_1.goals.GoalFollow(target, 1); // 1 block tolerance
                 bot.pathfinder.setGoal(followGoal);
                 agent.sendChat(`Perpetually Following ${playerName}`);
-                bot.on("goal_reached", () => {
+                this.interval = setInterval(() => {
                     const followGoal = new mineflayer_pathfinder_1.goals.GoalFollow(target, 1); // 1 block tolerance
                     bot.pathfinder.setGoal(followGoal);
-                });
+                }, 1000);
+                // bot.on("goal_reached", () => {
+                //   const followGoal = new goals.GoalFollow(target, 1); // 1 block tolerance
+                //   bot.pathfinder.setGoal(followGoal);
+                // });
             }
             else {
                 agent.sendChat(`Player ${playerName} not found.`);
@@ -49,7 +54,9 @@ class PerpetualFollowCommand extends command_1.Command {
                 return;
             }
             (_a = this.agent) === null || _a === void 0 ? void 0 : _a.getBot().pathfinder.stop();
-            bot.removeListener("goal_reached", () => { });
+            if (this.interval) {
+                clearInterval(this.interval);
+            }
             this.agent.sendChat("Stopped following.");
         });
     }

@@ -4,46 +4,41 @@ exports.AgentManager = void 0;
 const Agent_1 = require("./Agent");
 const agents = new Map();
 let updateCallback = () => { };
+let pendingAgentCount = 0; // <-- Tracks agents waiting to be created
 exports.AgentManager = {
     getBotCount() {
         return agents.size;
     },
-    /**
-     * Creates a new agent with the given parameters
-     *
-     * @param {string} name - The name of the agent.
-     * @param {string} configPath - The path to the config file.
-     * @param {string} server - The server to connect to.
-     * @param {number} port - The port to connect to.
-     * @param {any[]} plugins - The plugins to use.
-     * @param {Object} [options] - Optional parameters like email and password
-     * @return {Agent|null} The created agent or null if it already exists
-     */
     createAgent(name, configPath, server, port, plugins, options) {
         if (agents.has(name))
             return null;
-        // Create login info object
         const loginInfo = {
             username: name,
             email: (options === null || options === void 0 ? void 0 : options.email) || "",
             password: (options === null || options === void 0 ? void 0 : options.password) || "",
         };
-        let agent = null;
-        if (agents.size >= 1) {
-            // Create with delay if not the first agent
-            setTimeout(() => {
-                agent = new Agent_1.Agent(configPath, loginInfo, server, port, plugins);
-                agents.set(name, agent);
-                this.triggerUpdate();
-            }, 6 * 1000); // 6 seconds delay
-        }
-        else {
-            // Create immediately if first agent
-            agent = new Agent_1.Agent(configPath, loginInfo, server, port, plugins);
+        const create = () => {
+            const agent = new Agent_1.Agent(configPath, loginInfo, server, port, plugins);
             agents.set(name, agent);
             this.triggerUpdate();
+            pendingAgentCount = Math.max(0, pendingAgentCount - 1); // Reduce pending count
+            return agent;
+        };
+        if (agents.size + pendingAgentCount >= 1) {
+            const delayMs = 6000 * (pendingAgentCount + 1); // Delay per pending position
+            console.log(`Agent "${name}" scheduled to join in ${delayMs}ms`);
+            pendingAgentCount++;
+            setTimeout(() => {
+                create();
+            }, delayMs);
+            return null; // Not created yet
         }
-        return agent;
+        else {
+            return create(); // Create immediately
+        }
+    },
+    getAgentById(id) {
+        return Array.from(agents.values()).find((a) => a.getBot().entity.id === id);
     },
     getAgent(name) {
         return agents.get(name);
@@ -74,7 +69,6 @@ exports.AgentManager = {
             updateCallback();
     },
     makeHud() {
-        // Call this to start the HUD system
         console.log("HUD initialized");
     },
 };

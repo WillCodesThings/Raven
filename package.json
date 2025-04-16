@@ -32,9 +32,12 @@
     "prismarine-chat": "^1.11.0",
     "prismarine-viewer": "^1.33.0",
     "react": "^19.1.0",
+    "typescript": "^5.8.3",
     "ws": "^8.18.1"
   },
   "devDependencies": {
+    "@types/express": "^5.0.1",
+    "@types/ws": "^8.18.1",
     "concurrently": "^9.1.2",
     "electron": "^35.1.5",
     "electron-builder": "^26.0.12",

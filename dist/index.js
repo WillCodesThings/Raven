@@ -5,8 +5,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mineflayer_pathfinder_1 = require("mineflayer-pathfinder");
 const mineflayer_pvp_1 = require("mineflayer-pvp");
-const agentManager_1 = require("./utils/agentManager");
-agentManager_1.AgentManager.createAgent("Lily", "./data/Lily_config.json", "localhost", 25565, [mineflayer_pathfinder_1.pathfinder, mineflayer_pvp_1.plugin]);
+const AgentManager_1 = require("./utils/AgentManager");
+AgentManager_1.AgentManager.createAgent("Lily", "./data/Lily_config.json", "localhost", 25565, [mineflayer_pathfinder_1.pathfinder, mineflayer_pvp_1.plugin]);
+AgentManager_1.AgentManager.createAgent("Andy", "./data/Lily_config.json", "localhost", 25565, [mineflayer_pathfinder_1.pathfinder, mineflayer_pvp_1.plugin]);
+AgentManager_1.AgentManager.createAgent("Max", "./data/Lily_config.json", "localhost", 25565, [mineflayer_pathfinder_1.pathfinder, mineflayer_pvp_1.plugin]);
 // Agent Manager will auto stagger
 // AgentManager.createAgent(
 //   "Andy",
@@ -19,16 +21,31 @@ const express_1 = __importDefault(require("express"));
 const path_1 = __importDefault(require("path"));
 const http_1 = __importDefault(require("http"));
 const ws_1 = require("ws");
-const app = express_1.default();
+const app = (0, express_1.default)();
 const server = http_1.default.createServer(app);
 const wss = new ws_1.WebSocketServer({ server });
 const PORT = 8080;
+app.use(express_1.default.json());
 // Serve frontend files
 app.use(express_1.default.static(path_1.default.join(__dirname, "..", "public")));
 // API route (optional fallback)
 app.get("/api/agents", (req, res) => {
-    const agents = agentManager_1.AgentManager.getAllAgents().map((a) => (Object.assign(Object.assign({}, a.getBotInfo()), { currentTask: a.getCurrentTask() })));
+    const agents = AgentManager_1.AgentManager.getAllAgents().map((a) => (Object.assign(Object.assign({}, a.getBotInfo()), { currentTask: a.getCurrentTask() })));
     res.json(agents);
+});
+app.post("/api/getAIInfrence", (req, res) => {
+    const { id } = req.body;
+    console.log(req);
+    console.log(req.body);
+    console.log(req.query);
+    if (!id) {
+        return res.status(400).send("No id provided");
+    }
+    const agent = AgentManager_1.AgentManager.getAgent(id);
+    if (!agent) {
+        return res.status(404).send("Agent not found");
+    }
+    return res.json(agent.getBotInfo());
 });
 // Broadcast helper
 function broadcastToClients(data) {
@@ -42,16 +59,17 @@ function broadcastToClients(data) {
 // WebSocket connection handler
 wss.on("connection", (ws) => {
     console.log("WebSocket client connected");
-    setInterval(() => broadcastToClients({
-        type: "update",
-        agents: agentManager_1.AgentManager.getAllAgents().map((a) => (Object.assign(Object.assign({}, a.getBotInfo()), { currentTask: a.getLastCommandName() }))),
-    }), 300);
+    setInterval(() => {
+        broadcastToClients({
+            type: "update",
+            agents: AgentManager_1.AgentManager.getAllAgents().map((a) => (Object.assign(Object.assign({}, a.getBotInfo()), { currentTask: a.getLastCommandName() }))),
+        });
+    }, 300);
     ws.on("close", () => {
         console.log("WebSocket client disconnected");
     });
-    // Optionally, handle any messages from the client here
     ws.on("message", (message) => {
-        console.log("Received message:", message);
+        console.log("Received message:", message.toString());
     });
 });
 server.listen(PORT, () => {

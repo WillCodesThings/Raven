@@ -6,8 +6,18 @@
     
     import { Combobox } from "$lib/components/ui/combobox";
 
+    import * as Resizable from "$lib/components/ui/resizable";
+
+    import * as Dialog from "$lib/components/ui/dialog";
+
     import { toggleMode } from "mode-watcher";
     import { onMount } from "svelte";
+    import Separator from "$lib/components/ui/separator/separator.svelte";
+    import DialogContent from "$lib/components/ui/dialog/dialog-content.svelte";
+    import DialogHeader from "$lib/components/ui/dialog/dialog-header.svelte";
+    import DialogDescription from "$lib/components/ui/dialog/dialog-description.svelte";
+
+    let createAgentDialog = false;
 
     interface Item {
       componentMap: Record<string, any>; 
@@ -25,8 +35,10 @@
     }
 
     interface BotInfo {
+      currentTask: string,
       name: string;
       health: number;
+      model: string;
       position: {
         x: number;
         y: number;
@@ -48,9 +60,41 @@
       uuid: number;
     }
 
-    let selectedAgent: BotInfo | undefined = undefined;
+    let selectedAgent: BotInfo | undefined = {
+      currentTask: "mine",
+      dimension: "overworld",
+      model: "",
+      experience: 0,
+      food: 15,
+      gamemode: "survival",
+      health: 15,
+      height: 1.8,
+      heldItem: {
+        componentMap: {},
+        components: [],
+        count: 1,
+        displayName: "",
+        metadata: 1,
+        name: "",
+        nbt: 1,
+        removedComponents: [],
+        slot: 1,
+        stackId: "",
+        stackSize: 1,
+        type: 1
+      },
+      inventory: [],
+      inventorySize: 46,
+      level: 0,
+      name: "Lily",
+      position: {x: -329.50113248810504, y: 57, z: -423.41810684691075},
+      rotation: {yaw: -3.1197098850178246, pitch: 0.0012589161946632288},
+      uuid:72
+    };
 
     let agents: BotInfo[] = [{
+      currentTask: "",
+      model: "",
       name: "",
       health: 0,
       position: {
@@ -71,13 +115,15 @@
       experience: 0,
       inventory: [],
       inventorySize: 0,
-      uuid: 0,
+      uuid: 6892,
     }];
+
+    let webSocket:WebSocket;
 
     let formattedAgents = formatAgents(agents);
 
     onMount(() =>{
-      const webSocket = new WebSocket("ws://localhost:8080");
+      webSocket = new WebSocket("ws://localhost:8080");
       webSocket.onopen = (event) => {
         console.log("WebSocket is open now.");
       };
@@ -91,6 +137,7 @@
             const updated = agents.find(agent => agent.uuid === selectedAgent?.uuid);
             if (updated) {
               selectedAgent = updated;
+              // console.log(updated)
             } else {
               selectedAgent = null; // In case the agent is no longer available
             }
@@ -105,53 +152,110 @@
       };
     })
 
+
+    function toUpper(str: string) {
+      if (str.length < 2) return str.toUpperCase();
+
+      return str.charAt(0).toUpperCase() + str.substring(1);
+    }
+
     function formatAgents(agents: BotInfo[]) {
       if (!agents || agents.length === 0) {
         return [];
       }
-        return agents.map(agent => ({
-            label: agent.name,
+
+      let agentsArray = agents.map(agent => ({  // for some reason .push returns the new LENGTH OF THE ARRAY???
+            label: `${agent.name} | ${toUpper(agent.model)}`,
             value: agent.uuid.toString()
         }));
+
+        agentsArray.push({
+          label: "Create +",
+          value: "createAgent"
+        }); 
+
+        return agentsArray; // append our little create agent at the end
     }
 
     function onSelect(value: string) {
         console.log("Selected value:", value);
-        selectedAgent = agents.find(agent => agent.uuid.toString() === value);
-        console.log("Selected agent:", selectedAgent);
+        if (value === "createAgent") {
+          createAgentDialog = true;
+        
+          selectedAgent = agents.find(agent => agent.uuid.toString() === value);
+        } else {
+          selectedAgent = agents.find(agent => agent.uuid.toString() === value);
+          console.log("Selected agent:", selectedAgent);
+        }
+        
     }
 
+    function onSubmit(e: Event) {
+      e.preventDefault();
+      console.log("Submitted form");
+      console.log(e.target);
+      const formData = new FormData(e.target as HTMLFormElement);
+      console.log(formData);
+
+      const name = formData.get("name") as string;
+      const model = formData.get("model") as string;
+    }
 </script>
 
-<Combobox onSelect={onSelect} values={formattedAgents} defaultLabel="Agent"></Combobox>
+<!-- for this I like to use Resizable as a type of grid, its really useful -->
 
-<Button class="absolute right-4 top-4" on:click={toggleMode} variant="outline" size="icon">
-    <Sun
-      class="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
-    />
-    <Moon
-      class="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
-    />
-    <span class="sr-only">Toggle theme</span>
-</Button>
+<Dialog.Root open={createAgentDialog} closeOnEscape={true} >
 
-{#if selectedAgent != null}
+    <DialogContent>
+      <DialogHeader>
+        Create a new Agent!
+      </DialogHeader>
+      <DialogDescription>
+        <form>
 
-  <div class="w-full h-full" id="agentDataDisplay">
-    <div class="">name: {selectedAgent.name}</div>
-    <div class="">health: {selectedAgent.health}</div>
-    <div class="">position: {selectedAgent.position.x}, {selectedAgent.position.y}, {selectedAgent.position.z}</div>
-    <div class="">rotation: {selectedAgent.rotation.yaw}, {selectedAgent.rotation.pitch}</div>
-    <div class="">height: {selectedAgent.height}</div>
-    <div class="">dimension: {selectedAgent.dimension}</div>
-    <div class="">gamemode: {selectedAgent.gamemode}</div>
-    <div class="">food: {selectedAgent.food}</div>
-    <div class="">heldItem: {selectedAgent.heldItem}</div>
-    <div class="">level: {selectedAgent.level}</div>
-    <div class="">experience: {selectedAgent.experience}</div>
-    <div class="">inventorySize: {selectedAgent.inventorySize}</div>
-    <div class="">uuid: {selectedAgent.uuid}</div>
-    
-  </div>
+        </form>
+      </DialogDescription>
+    </DialogContent>
 
-{/if}
+</Dialog.Root>
+
+
+<div class="w-full h-[100dvh]">
+  <Resizable.PaneGroup direction="vertical" class="w-full h-full flex flex-col">
+    <Resizable.Pane class="flex flex-row items-center" defaultSize={8}>
+  
+      <Combobox _class="mr-auto ml-4" onSelect={onSelect} values={formattedAgents} defaultLabel="Agent"></Combobox>
+  
+      <Button class="ml-auto mr-4" on:click={toggleMode} variant="outline" size="icon">
+          <Sun
+            class="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
+          />
+          <Moon
+            class="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
+          />
+          <span class="sr-only">Toggle theme</span>
+      </Button>
+    </Resizable.Pane>
+    <Separator />
+    <Resizable.Pane>
+      {#if selectedAgent != null}
+      <div class="w-full h-full" id="agentDataDisplay">
+        
+        <Resizable.PaneGroup direction="horizontal" class="w-full h-full flex flex-col">
+          <Resizable.Pane class="flex flex-col items-center p-2 justify-center" defaultSize={20} minSize={20} maxSize={50}>
+            <div class="w-full h-full bg-secondary rounded flex flex-col justify-center items-center">
+
+              <div class="mt-auto mb-2 font-bold text-4xl" id="namePlate">{selectedAgent.name}</div>
+            </div>
+            
+          </Resizable.Pane>
+          <Resizable.Handle withHandle={true} />
+          <Resizable.Pane class="Pane">
+            
+          </Resizable.Pane>
+        </Resizable.PaneGroup>
+      </div>
+      {/if}
+    </Resizable.Pane>
+  </Resizable.PaneGroup>
+</div>

@@ -11,23 +11,36 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OllamaModel = void 0;
 class OllamaModel {
-    constructor(model, server, port, name) {
+    constructor(model, server, port, name, route = "/generate", method = "POST") {
         this.model = model;
-        this.config = {};
+        this.config = {
+            server,
+            port,
+            name,
+            route,
+            method
+        };
+        this.messages = [];
+    }
+    addMessage(message) {
+        this.messages.push(message);
+    }
+    getMessages() {
+        return this.messages;
     }
     generate(prompt, options = {}, callback) {
         return __awaiter(this, void 0, void 0, function* () {
+            this.addMessage({
+                role: "user",
+                message: prompt,
+            });
             // Simulate a response from the model
-            fetch(`http://localhost:${this.config.port}/generate`, {
-                method: "POST",
+            fetch(`http://${this.config.server}:${this.config.port}${this.config.route}`, {
+                method: this.config.method,
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({
-                    model: this.model,
-                    prompt: prompt,
-                    options: options,
-                }),
+                body: JSON.stringify({ messages: this.messages }),
             }).then((response) => response.json());
         });
     }

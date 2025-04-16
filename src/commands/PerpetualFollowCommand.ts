@@ -5,6 +5,7 @@ import { Agent } from "../utils/Agent";
 
 export class PerpetualFollowCommand extends Command {
   private agent: Agent | null = null;
+  private interval: NodeJS.Timeout | null = null;
 
   constructor() {
     super("pfollow");
@@ -19,10 +20,14 @@ export class PerpetualFollowCommand extends Command {
       const followGoal = new goals.GoalFollow(target, 1); // 1 block tolerance
       bot.pathfinder.setGoal(followGoal);
       agent.sendChat(`Perpetually Following ${playerName}`);
-      bot.on("goal_reached", () => {
+      this.interval = setInterval(() => {
         const followGoal = new goals.GoalFollow(target, 1); // 1 block tolerance
         bot.pathfinder.setGoal(followGoal);
-      });
+      }, 1000);
+      // bot.on("goal_reached", () => {
+      //   const followGoal = new goals.GoalFollow(target, 1); // 1 block tolerance
+      //   bot.pathfinder.setGoal(followGoal);
+      // });
     } else {
       agent.sendChat(`Player ${playerName} not found.`);
     }
@@ -40,7 +45,9 @@ export class PerpetualFollowCommand extends Command {
     }
 
     this.agent?.getBot().pathfinder.stop();
-    bot.removeListener("goal_reached", () => {});
+    if (this.interval) {
+      clearInterval(this.interval);
+    }
     this.agent.sendChat("Stopped following.");
   }
 }

@@ -7,6 +7,8 @@
     import { Button } from "$lib/components/ui/button/index.js";
     import { cn } from "$lib/utils.js";
     
+    export let _class="";
+
     export let values: {
      label: string;
      value: string;
@@ -34,13 +36,13 @@
    </script>
     
    <Popover.Root bind:open let:ids>
-    <Popover.Trigger asChild let:builder>
+    <Popover.Trigger class={_class} asChild let:builder>
      <Button
       builders={[builder]}
       variant="outline"
       role="combobox"
       aria-expanded={open}
-      class="w-[200px] justify-between"
+      class="w-[200px] justify-between {_class}"
      >
       {selectedValue}
       <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />

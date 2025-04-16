@@ -20,6 +20,7 @@ import { SetSkinCommand } from "../commands/SetSkinCommand";
 import { PerpetualFollowCommand } from "../commands/PerpetualFollowCommand";
 import { EquipCommand } from "../commands/EquipCommand";
 import { ArmorEquipCommand } from "../commands/ArmorEquip";
+import { GetAllInfoCommand } from "../commands/GetAllInfoCommand";
 
 const mineflayerViewer = prismarineViewer.mineflayer;
 export function addBrowserViewer(bot: Bot, count_id: number) {
@@ -50,6 +51,9 @@ export interface AgentConfig {
 interface BotInfo {
   name: string;
   health: number;
+  model: string;
+  // maxHealth: number;
+  // maxFood: number;
   position: Vec3;
   rotation: {
     yaw: number;
@@ -62,7 +66,7 @@ interface BotInfo {
   heldItem: Item | null;
   level: number;
   experience: number;
-  inventory: Item[];
+  inventory: Item[] | [];
   inventorySize: number;
   uuid: number;
 }
@@ -94,6 +98,26 @@ export class Agent {
     this.name = loginInfo.username;
     this.currentTask = this.config.currentTask;
     this.previousTask = this.config.previousTask;
+
+    this.botInfo = {
+      name: "Offline",
+      health: 0,
+      model: this.config.model,
+      // maxHealth: 0,
+      // maxFood: 0,
+      position: new Vec3(0, 0, 0),
+      height: 0.0,
+      rotation: { yaw: 0, pitch: 0 },
+      dimension: "overworld",
+      gamemode: "survival",
+      food: 0,
+      heldItem: null,
+      level: 0,
+      experience: 0,
+      inventory: [],
+      inventorySize: 0,
+      uuid: 0,
+    }
 
     this.bot = this.createAndInitBot(loginInfo, server, port, plugins);
     this.messageRouter = new MessageRouter(this);
@@ -152,7 +176,7 @@ export class Agent {
     });
 
     bot.on("death", () => this.sendChat("I have died!"));
-    bot.on("chat", (username, message) =>
+    bot.on("chat", (username: string, message: string) =>
       this.messageRouter.routeMessage(username, message)
     );
     bot.on("physicsTick", () => this.updateBotInfo());
@@ -180,6 +204,7 @@ export class Agent {
       new PerpetualFollowCommand(),
       new EquipCommand(),
       new ArmorEquipCommand(),
+      new GetAllInfoCommand(),
     ].forEach((cmd) => this.registerCommand(cmd));
   }
 
@@ -294,6 +319,7 @@ export class Agent {
     const { bot } = this;
     this.botInfo = {
       name: this.name,
+      model: this.config.model,
       health: bot.health,
       position: bot.entity.position,
       height: bot.entity.height,
@@ -314,6 +340,7 @@ export class Agent {
     if (!this.botInfo) return;
     Object.assign(this.botInfo, {
       health: this.bot.health,
+      model: this.config.model,
       position: this.bot.entity.position,
       height: this.bot.entity.height,
       rotation: {
