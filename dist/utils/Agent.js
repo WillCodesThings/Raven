@@ -39,7 +39,7 @@ function addBrowserViewer(bot, count_id) {
 exports.addBrowserViewer = addBrowserViewer;
 let botsMade = 0;
 class Agent {
-    constructor(configPath, loginInfo, server, port, plugins) {
+    constructor(configPath, loginInfo, server, port, plugins, model) {
         this.commands = new Map();
         this.lastCommandMessage = null;
         this.lastCommand = null;
@@ -48,6 +48,7 @@ class Agent {
         this.name = loginInfo.username;
         this.currentTask = this.config.currentTask;
         this.previousTask = this.config.previousTask;
+        this.model = model;
         this.botInfo = {
             name: "Offline",
             health: 0,
@@ -68,7 +69,6 @@ class Agent {
             uuid: 0,
         };
         this.bot = this.createAndInitBot(loginInfo, server, port, plugins);
-        this.messageRouter = new MessageRouter_1.MessageRouter(this);
         this.registerDefaultCommands();
         console.log(`Agent ${this.name} created and connected to ${server}:${port}`);
     }
@@ -130,6 +130,7 @@ class Agent {
             new ArmorEquip_1.ArmorEquipCommand(),
             new GetAllInfoCommand_1.GetAllInfoCommand(),
         ].forEach((cmd) => this.registerCommand(cmd));
+        this.messageRouter = new MessageRouter_1.MessageRouter(this, this.commands);
     }
     getMemory() {
         return JSON.parse(fs_1.default.readFileSync(this.config.memory, "utf-8"));
@@ -148,6 +149,19 @@ class Agent {
     }
     registerCommand(command) {
         this.commands.set(command.name, command);
+    }
+    processUserMessage(message) {
+        return __awaiter(this, void 0, void 0, function* () {
+            message = message.replace(`<${this.name}>`, "");
+            let res = yield this.model.generate(message, {}, (response) => {
+                this.sendChat(response);
+                this.newAction(response, message);
+                return response;
+            });
+        });
+    }
+    newAction(action, message) {
+        this.sendChat(`New action: ${action}`);
     }
     processUserCommand(message) {
         // if (username === this.name) return;

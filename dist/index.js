@@ -6,9 +6,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mineflayer_pathfinder_1 = require("mineflayer-pathfinder");
 const mineflayer_pvp_1 = require("mineflayer-pvp");
 const AgentManager_1 = require("./utils/AgentManager");
-AgentManager_1.AgentManager.createAgent("Lily", "./data/Lily_config.json", "localhost", 25565, [mineflayer_pathfinder_1.pathfinder, mineflayer_pvp_1.plugin]);
-AgentManager_1.AgentManager.createAgent("Andy", "./data/Lily_config.json", "localhost", 25565, [mineflayer_pathfinder_1.pathfinder, mineflayer_pvp_1.plugin]);
-AgentManager_1.AgentManager.createAgent("Max", "./data/Lily_config.json", "localhost", 25565, [mineflayer_pathfinder_1.pathfinder, mineflayer_pvp_1.plugin]);
+const AIModel_1 = require("./utils/AIModel");
+let model = new AIModel_1.AIModel("ollama-7b-v2", {
+    systemPrompt: "You are playing minecraft, you are given commands that will be given everytime a message is sent, you can also use the !help(commandName) to get more information about a command, and you can use !stop to stop the bot, and any inputs are treated as strings or arrays, and any numbers will be treated as numbers",
+    server: "10.65.64.238",
+    port: 5001,
+    name: "ollama-7b-v2",
+    route: "/api/gen/mc",
+    method: "POST",
+});
+AgentManager_1.AgentManager.createAgent("Lily", "./data/Lily_config.json", "localhost", 25565, [mineflayer_pathfinder_1.pathfinder, mineflayer_pvp_1.plugin], {}, model);
 // Agent Manager will auto stagger
 // AgentManager.createAgent(
 //   "Andy",

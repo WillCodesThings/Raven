@@ -189,6 +189,12 @@
         }
         
     }
+    /*
+    
+    TODO: make this a node graph and command center,
+    also fix creating agents
+    
+    */
 
     function onSubmit(e: Event) {
       e.preventDefault();

@@ -1,4 +1,5 @@
 import { Agent, LoginInfo } from "./Agent";
+import { AIModel } from "./AIModel";
 
 const agents = new Map<string, Agent>();
 let updateCallback: () => void = () => {};
@@ -15,9 +16,11 @@ export const AgentManager = {
     server: string,
     port: number,
     plugins: any[],
-    options?: { email?: string; password?: string }
+    options?: { email?: string; password?: string },
+    model?: AIModel
   ) {
     if (agents.has(name)) return null;
+    if (!model) throw new Error("Model not provided");
 
     const loginInfo: LoginInfo = {
       username: name,
@@ -26,7 +29,7 @@ export const AgentManager = {
     };
 
     const create = () => {
-      const agent = new Agent(configPath, loginInfo, server, port, plugins);
+      const agent = new Agent(configPath, loginInfo, server, port, plugins, model);
       agents.set(name, agent);
       this.triggerUpdate();
       pendingAgentCount = Math.max(0, pendingAgentCount - 1); // Reduce pending count

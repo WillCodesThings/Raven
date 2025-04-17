@@ -2,8 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MessageRouter = void 0;
 class MessageRouter {
-    constructor(agent) {
+    constructor(agent, commands) {
         this.agent = agent;
+        this.commands = commands;
     }
     /**
      * Deconstructs a function-style command into command name and arguments
@@ -11,32 +12,34 @@ class MessageRouter {
      * @returns An array with the command name as first element and arguments as remaining elements
      */
     deconstructCommand(message) {
-        // First, extract the command name and parameter string
-        const cmdRegex = /^(\w+)\s*\((.*)\)$/;
-        const match = message.trim().match(cmdRegex);
+        let commandMatch = null;
+        for (const [commandName] of this.commands) {
+            const regex = new RegExp(`!${commandName}\\s*\\(([^)]*)\\)`, "i"); // will search for !commandName(args) reguardless of text coming before it
+            const match = message.match(regex);
+            if (match) {
+                commandMatch = match[0];
+                break;
+            }
+        }
+        if (!commandMatch) {
+            return { commandName: "", args: [] };
+        }
+        // Extract the name and parameters from the matched command
+        const cmdRegex = /^!(\w+)\s*\((.*)\)$/;
+        const match = commandMatch.trim().match(cmdRegex);
         if (!match) {
-            // Fallback to simple space-separated parsing if not in function format
-            const parts = message.trim().split(/\s+/);
             return { commandName: "", args: [] };
         }
         const commandName = match[1].toLowerCase();
         const paramString = match[2].trim();
         if (!paramString) {
-            // Command with no parameters
             return { commandName, args: [] };
         }
-        // Parse the parameters - this handles arrays and nested structures
         try {
-            // First attempt to parse as JSON by wrapping in array brackets
-            // This handles arrays, strings with commas, etc.
             const parsedArgs = this.parseParameters(paramString);
-            return {
-                commandName,
-                args: parsedArgs,
-            };
+            return { commandName, args: parsedArgs };
         }
-        catch (e) {
-            // If JSON parsing fails, fall back to simple comma separation
+        catch (_a) {
             const args = paramString.split(",").map((arg) => arg.trim());
             return {
                 commandName,
@@ -124,7 +127,7 @@ class MessageRouter {
         // this.agent.sendChat(`Routing message: ${message}`);
         if (this.isUserCommand(message)) {
             this.agent.sendChat(`Processing user command: ${message}`);
-            this.agent.processUserCommand(message);
+            this.agent.processUserMessage(message);
         }
         else if (this.isAgentMessageForMe(message)) {
             this.agent.sendChat(`Processing agent message: ${message}`);
@@ -137,7 +140,7 @@ class MessageRouter {
      * @returns true if the message is a user command, false otherwise
      */
     isUserCommand(message) {
-        return message.startsWith(`<${this.agent.getName()}> !`);
+        return message.startsWith(`<${this.agent.getName()}> `);
     }
     /**
      * Checks if the message is directed to this agent or all agents

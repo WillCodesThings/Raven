@@ -9,16 +9,18 @@ exports.AgentManager = {
     getBotCount() {
         return agents.size;
     },
-    createAgent(name, configPath, server, port, plugins, options) {
+    createAgent(name, configPath, server, port, plugins, options, model) {
         if (agents.has(name))
             return null;
+        if (!model)
+            throw new Error("Model not provided");
         const loginInfo = {
             username: name,
             email: (options === null || options === void 0 ? void 0 : options.email) || "",
             password: (options === null || options === void 0 ? void 0 : options.password) || "",
         };
         const create = () => {
-            const agent = new Agent_1.Agent(configPath, loginInfo, server, port, plugins);
+            const agent = new Agent_1.Agent(configPath, loginInfo, server, port, plugins, model);
             agents.set(name, agent);
             this.triggerUpdate();
             pendingAgentCount = Math.max(0, pendingAgentCount - 1); // Reduce pending count

@@ -1,6 +1,18 @@
 import { pathfinder } from "mineflayer-pathfinder";
 import { plugin } from "mineflayer-pvp";
 import { AgentManager } from "./utils/AgentManager";
+import { AIModel } from "./utils/AIModel";
+
+
+let model = new AIModel("ollama-7b-v2", {
+  systemPrompt:
+    "You are playing minecraft, you are given commands that will be given everytime a message is sent, you can also use the !help(commandName) to get more information about a command, and you can use !stop to stop the bot, and any inputs are treated as strings or arrays, and any numbers will be treated as numbers",
+  server: "10.65.64.238",
+  port: 5001,
+  name: "ollama-7b-v2",
+  route: "/api/gen/mc",
+  method: "POST",
+});
 
 AgentManager.createAgent(
   "Lily",
@@ -8,22 +20,8 @@ AgentManager.createAgent(
   "localhost",
   25565,
   [pathfinder, plugin],
-);
-
-AgentManager.createAgent(
-  "Andy",
-  "./data/Lily_config.json",
-  "localhost",
-  25565,
-  [pathfinder, plugin],
-);
-
-AgentManager.createAgent(
-  "Max",
-  "./data/Lily_config.json",
-  "localhost",
-  25565,
-  [pathfinder, plugin],
+  {},
+  model
 );
 
 // Agent Manager will auto stagger

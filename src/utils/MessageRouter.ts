@@ -1,10 +1,13 @@
 import { Agent } from "./Agent";
+import { Command } from "./command";
 
 export class MessageRouter {
   private agent: Agent;
+  private commands: Map<string, Command>;
 
-  constructor(agent: Agent) {
+  constructor(agent: Agent, commands: Map<string, Command>) {
     this.agent = agent;
+    this.commands = commands;
   }
 
   /**
@@ -16,35 +19,41 @@ export class MessageRouter {
     commandName: string;
     args: any[];
   } {
-    // First, extract the command name and parameter string
-    const cmdRegex = /^(\w+)\s*\((.*)\)$/;
-    const match = message.trim().match(cmdRegex);
-
-    if (!match) {
-      // Fallback to simple space-separated parsing if not in function format
-      const parts = message.trim().split(/\s+/);
+    let commandMatch: string | null = null;
+  
+    for (const [commandName] of this.commands) {
+      const regex = new RegExp(`!${commandName}\\s*\\(([^)]*)\\)`, "i"); // will search for !commandName(args) reguardless of text coming before it
+      const match = message.match(regex);
+  
+      if (match) {
+        commandMatch = match[0];
+        break;
+      }
+    }
+  
+    if (!commandMatch) {
       return { commandName: "", args: [] };
     }
-
+  
+    // Extract the name and parameters from the matched command
+    const cmdRegex = /^!(\w+)\s*\((.*)\)$/;
+    const match = commandMatch.trim().match(cmdRegex);
+  
+    if (!match) {
+      return { commandName: "", args: [] };
+    }
+  
     const commandName = match[1].toLowerCase();
     const paramString = match[2].trim();
-
+  
     if (!paramString) {
-      // Command with no parameters
       return { commandName, args: [] };
     }
-
-    // Parse the parameters - this handles arrays and nested structures
+  
     try {
-      // First attempt to parse as JSON by wrapping in array brackets
-      // This handles arrays, strings with commas, etc.
       const parsedArgs = this.parseParameters(paramString);
-      return {
-        commandName,
-        args: parsedArgs,
-      };
-    } catch (e) {
-      // If JSON parsing fails, fall back to simple comma separation
+      return { commandName, args: parsedArgs };
+    } catch {
       const args = paramString.split(",").map((arg) => arg.trim());
       return {
         commandName,
@@ -138,7 +147,7 @@ export class MessageRouter {
 
     if (this.isUserCommand(message)) {
       this.agent.sendChat(`Processing user command: ${message}`);
-      this.agent.processUserCommand(message);
+      this.agent.processUserMessage(message);
     } else if (this.isAgentMessageForMe(message)) {
       this.agent.sendChat(`Processing agent message: ${message}`);
       this.agent.processAgentMessage(sender, message);
@@ -151,7 +160,7 @@ export class MessageRouter {
    * @returns true if the message is a user command, false otherwise
    */
   private isUserCommand(message: string): boolean {
-    return message.startsWith(`<${this.agent.getName()}> !`);
+    return message.startsWith(`<${this.agent.getName()}> `);
   }
 
   /**

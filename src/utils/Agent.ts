@@ -21,6 +21,7 @@ import { PerpetualFollowCommand } from "../commands/PerpetualFollowCommand";
 import { EquipCommand } from "../commands/EquipCommand";
 import { ArmorEquipCommand } from "../commands/ArmorEquip";
 import { GetAllInfoCommand } from "../commands/GetAllInfoCommand";
+import { AIModel } from "./AIModel";
 
 const mineflayerViewer = prismarineViewer.mineflayer;
 export function addBrowserViewer(bot: Bot, count_id: number) {
@@ -75,6 +76,8 @@ export class Agent {
   private name: string;
   private bot: Bot;
 
+  private model: AIModel;
+
   private config: AgentConfig;
   private commands = new Map<string, Command>();
   private currentTask: string;
@@ -92,12 +95,16 @@ export class Agent {
     loginInfo: LoginInfo,
     server: string,
     port: number,
-    plugins: Plugin[]
+    plugins: Plugin[],
+    model: AIModel
   ) {
     this.config = this.loadConfig(configPath);
     this.name = loginInfo.username;
     this.currentTask = this.config.currentTask;
     this.previousTask = this.config.previousTask;
+    this.model = model;
+
+    
 
     this.botInfo = {
       name: "Offline",
@@ -120,7 +127,6 @@ export class Agent {
     }
 
     this.bot = this.createAndInitBot(loginInfo, server, port, plugins);
-    this.messageRouter = new MessageRouter(this);
     this.registerDefaultCommands();
 
     console.log(
@@ -206,6 +212,24 @@ export class Agent {
       new ArmorEquipCommand(),
       new GetAllInfoCommand(),
     ].forEach((cmd) => this.registerCommand(cmd));
+
+    this.messageRouter = new MessageRouter(this, this.commands);
+    
+    let modelSystemPrompt = this.model.getPrompt();
+
+    this.model.setSystemPrompt(`
+
+        You are an autonomous Minecraft agent named ${this.name}. Respond to natural language goals by outputting a sequence of mineflayer commands in the format: !command_name(arg1, arg2, ...)   Only respond with commands you can run. Do not explain unless asked. Examples: mine([diamond_ore], 10) -> !searchFor(iron_pickaxe,1) -> !mine(diamond_ore, 10)
+        ${this.config.systemPrompt}
+
+        List of commands:
+        ${this.commands.keys().join(", ")}
+        
+        Current task: ${this.currentTask}
+        Previous task: ${this.previousTask}
+
+        Memory: ${JSON.stringify(this.getMemory())}
+      `);
   }
 
   public getMemory() {
@@ -227,6 +251,20 @@ export class Agent {
 
   public registerCommand(command: Command) {
     this.commands.set(command.name, command);
+  }
+
+  public async processUserMessage(message: string) {
+    message = message.replace(`<${this.name}>`, "")
+    let res: string = await this.model.generate(message, {}, (response: string) => {
+      this.sendChat(response);
+      this.newAction(response, message);
+      return response;
+    });
+    
+  }
+
+  public newAction(action: string, message: string) {
+    this.sendChat(`New action: ${action}`);
   }
 
   public processUserCommand(message: string) {

@@ -9,15 +9,15 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.OllamaModel = void 0;
-class OllamaModel {
+exports.AIModel = void 0;
+class AIModel {
     constructor(model, config) {
         this.model = model;
         this.config = config;
         this.messages = [
             {
                 role: 'system',
-                message: this.config.systemPrompt,
+                content: this.config.systemPrompt,
             },
         ];
     }
@@ -29,16 +29,20 @@ class OllamaModel {
     }
     applyCorrection(correction) {
         return __awaiter(this, void 0, void 0, function* () {
-            this.addMessage({ role: 'system', message: correction });
+            this.addMessage({ role: 'system', content: correction });
             yield this.sendRequest();
         });
     }
     generate(prompt, options = {}, callback) {
         return __awaiter(this, void 0, void 0, function* () {
-            this.addMessage({ role: 'user', message: prompt });
-            const data = yield this.sendRequest(options);
-            const reply = (data === null || data === void 0 ? void 0 : data.response) || ''; // Adjust based on actual API response format
-            callback(reply);
+            this.addMessage({ role: 'user', content: prompt });
+            return yield this.sendRequest(options).then((reply) => {
+                // const reply = res; // Adjust based on actual API response format
+                if (!reply)
+                    return "Idk it returned 500 (reply doesn't exist)";
+                callback(reply.response);
+                return reply.response;
+            });
         });
     }
     getModel() {
@@ -47,6 +51,7 @@ class OllamaModel {
     sendRequest(extraData = {}) {
         return __awaiter(this, void 0, void 0, function* () {
             const url = `http://${this.config.server}:${this.config.port}${this.config.route}`;
+            console.log("[URL]", url);
             const payload = Object.assign({ messages: this.messages }, extraData);
             try {
                 const response = yield fetch(url, {
@@ -68,4 +73,4 @@ class OllamaModel {
         });
     }
 }
-exports.OllamaModel = OllamaModel;
+exports.AIModel = AIModel;

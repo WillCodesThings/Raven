@@ -6,4 +6,5 @@ export abstract class Command {
    */
   constructor(public name: string) {}
   abstract execute(agent: any, ...args: any[]): void;
+  abstract help(): string;
 }
